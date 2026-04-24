@@ -4,64 +4,54 @@ function randomString() {
   return Math.random().toString(36).substring(7);
 }
 
-test('Full Invoice Automation Flow', async ({ page }) => {
+test('User full flow (real user behavior)', async ({ page }) => {
 
-  await page.goto('http://localhost:3000');
-  await page.waitForLoadState('networkidle');
-
-  const name = `User_${randomString()}`;   // 🔥 added
+  const name = `User_${randomString()}`;
   const email = `user_${randomString()}@test.com`;
   const password = '123456';
 
-  //  Go to Signup
+  // Open app
+  await page.goto('/');
+
+  // 👉 Signup
   await page.getByText('Signup').click();
 
-  await page.waitForTimeout(1000);
+  await page.getByPlaceholder('Name').fill(name);
+  await page.getByPlaceholder('Email').fill(email);
+  await page.getByPlaceholder('Password').fill(password);
 
-  //  Fill ALL fields (Name added)
-  await page.fill('input[placeholder="Name"]', name);
-  await page.fill('input[placeholder="Email"]', email);
-  await page.fill('input[placeholder="Password"]', password);
-
-  //  Better click method
   await page.getByRole('button', { name: 'Signup' }).click();
 
-  await page.waitForTimeout(2000);
+  // ✅ VERIFY signup → login page visible
+  await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
 
-  //  Login
-  await page.fill('input[placeholder="Email"]', email);
-  await page.fill('input[placeholder="Password"]', password);
+  // 👉 Login
+  await page.getByPlaceholder('Email').fill(email);
+  await page.getByPlaceholder('Password').fill(password);
 
   await page.getByRole('button', { name: 'Login' }).click();
 
-  await page.waitForTimeout(2000);
+  // ✅ VERIFY login success
+  await expect(page.getByText('Add Invoice')).toBeVisible();
 
-  //  Create invoices
-  for (let i = 0; i < 5; i++) {
+  // 👉 Create invoice
+  await page.getByRole('button', { name: 'Add Invoice' }).click();
 
-    await page.getByRole('button', { name: 'Add Invoice' }).click();
+  await page.getByPlaceholder('Invoice Number').fill('INV123');
+  await page.getByPlaceholder('Client Name').fill('Test Client');
+  await page.getByPlaceholder('Amount').fill('1000');
 
-    await page.waitForTimeout(1000);
+  await page.locator('input[type="date"]').fill('2026-04-18');
+  await page.selectOption('select', 'Paid');
 
-    await page.fill('input[placeholder="Invoice Number"]', `INV${Math.floor(Math.random() * 1000)}`);
-    await page.fill('input[placeholder="Client Name"]', `Client_${randomString()}`);
-    await page.fill('input[type="date"]', '2026-04-18');
-    await page.fill('input[placeholder="Amount"]', `${Math.floor(Math.random() * 5000)}`);
+  await page.getByRole('button', { name: 'Save Invoice' }).click();
 
-    await page.selectOption('select', 'Paid');
+  // ✅ VERIFY invoice created
+  await expect(page.getByText('Test Client')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Save Invoice' }).click();
+  // 👉 Delete invoice
+  await page.getByRole('button', { name: 'Delete' }).first().click();
 
-    await page.waitForTimeout(1500);
-  }
-
-  //  Delete invoices
-  const deleteButtons = page.getByRole('button', { name: 'Delete' });
-  const count = await deleteButtons.count();
-
-  for (let i = 0; i < count; i++) {
-    await deleteButtons.first().click();
-    await page.waitForTimeout(500);
-  }
-
+  // ✅ VERIFY invoice deleted
+  await expect(page.getByText('Test Client')).not.toBeVisible();
 });
