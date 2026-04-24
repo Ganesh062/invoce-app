@@ -31,7 +31,7 @@ jobs:
 
       - run: npm test -- --watchAll=false
 
-      - run: npx playwright test --headless
+      - run: npx playwright test 
 
   build:
     runs-on: ubuntu-latest
